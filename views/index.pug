@@ -1,0 +1,48 @@
+// William Huang - U53888747
+
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Weather App
+  body
+    h1 Weather App
+
+    label(for="location") Enter Location:
+    input(type="text", id="location", placeholder="Enter city, zip code, etc.")
+    button(onclick="getWeather()") Get Weather
+
+    div#weatherResult
+
+    script.
+      function getWeather() {
+        const locationInput = document.getElementById('location');
+        const location = locationInput.value;
+
+        // make post request
+        fetch('http://localhost:3000/getWeather', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ location: location }),
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Failed to retrieve weather data');
+                  }
+                  return response.json();
+                })
+                .then(weatherData => {
+                  displayWeather(weatherData);
+                })
+                .catch(error => {
+                  console.error(error);
+                });
+      }
+
+      function displayWeather(weatherData) {
+        const weatherResultDiv = document.getElementById('weatherResult');
+        weatherResultDiv.innerHTML = `<p>Current Weather: ${weatherData}</p>`;
+      }

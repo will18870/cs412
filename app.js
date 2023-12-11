@@ -8,7 +8,7 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var ps4Router = require('./routes/ps4');
+var ps5Router = require('./routes/ps5b');
 
 var app = express();
 
@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', ps4Router);
+app.use('/', ps5Router);
 app.use('/index', indexRouter);
 app.use('/users', usersRouter);
 

@@ -1,4 +1,6 @@
 // William Huang - U53888747
+// !! The redis and cache things will only concern the
+// POST request that uses Promises!!
 
 var express = require('express');
 var router = express.Router();
@@ -10,11 +12,21 @@ const config = require('../config');
 const thekey = config.apiKey;
 
 
+//import { createClient } from 'redis' -> from lecture
+const createClient = require('redis').createClient;
+const client = createClient();
+
+client.on('error', err => console.log('Redis Client Error', err));
+
+
 router.use(bodyParser.json());
 
 /* get page. */
-router.get('/', function(req, res, next) {
-    res.render('index', { title: 'ps4' });
+router.get('/', async function(req, res, next) {
+    await client.connect();
+    await client.set('Ed', '22');
+    const value = await client.get('Ed');
+    res.render('index', { title: value });
 });
 
 // retrieve weather data from open weather API given lat and long
@@ -55,19 +67,40 @@ const getLatLong = (city) => {
 // post route to retrieve weather data via promise
 router.post('/getWeather', async (req, res) => {
 
-    try {
-        const location = req.body.location;
-        // get coordinates of the location
-        const latlong = await getLatLong(location);
-        console.log(latlong);
-        // get weather based on coordinates
-        const weatherData = await getWeatherData(latlong[0].lat, latlong[0].lon);
-        console.log(weatherData);
+    // connect to the redis client
+    await client.connect();
+    const value = await client.get('theWeather');
 
-        // send the weather data as the response
-        res.json(weatherData.weather[0].main);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+    // if there is a value in the cache already, just return that value
+    if(value !== null) {
+        res.json(value + " - - - THIS IS FROM THE CACHE!!!");
+    } else {
+
+        // otherwise, perform the normal api call
+
+        try {
+            const location = req.body.location;
+            // get coordinates of the location
+            const latlong = await getLatLong(location);
+            console.log(latlong);
+            // get weather based on coordinates
+            const weatherData = await getWeatherData(latlong[0].lat, latlong[0].lon);
+            console.log(weatherData);
+
+            // append the raw weather data into cache under "theWeather" key
+            // with a 15 sec timeout
+            await client.set('theWeather', weatherData, 'EX', 15);
+
+            // send the weather data as the response
+            // if this code is run, this code is NOT FROM CACHE!
+            // i append it to the string in a way that hopefully the user can see
+            // that the result is NOT FROM CACHE.
+            const notFromCache = weatherData.weather[0].main + " - - - THIS IS NOT FROM THE CACHE!!!";
+            res.json(notFromCache);
+        } catch (error) {
+            res.status(500).json({error: 'Internal Server Error'});
+        }
+
     }
 });
 
